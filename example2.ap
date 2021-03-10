@@ -1,0 +1,4 @@
+program Main {
+    boolean c = 15
+    if c { write(c) }
+}

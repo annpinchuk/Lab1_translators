@@ -133,7 +133,9 @@ function processing() {
   if (states.newLine.includes(state)) {
     line++;
     state = initState;
-  } else if (states.const.includes(state) || states.ident.includes(state)) {
+  }
+
+  if (states.const.includes(state) || states.ident.includes(state)) {
     const token = getToken(state, lexeme);
     let index = '';
 
@@ -145,7 +147,9 @@ function processing() {
 
     lexeme = '';
     state = initState;
-  } else if (states.operators.includes(state)) {
+  }
+
+  if (states.operators.includes(state)) {
     if (lexeme === '' || states.double_operators.includes(state)) {
       lexeme += char;
     }
@@ -156,11 +160,18 @@ function processing() {
 
     lexeme = '';
     state = initState;
-  } else if (states.error.includes(state)) {
+  }
+
+  if (states.error.includes(state)) {
     console.error(`(${state}) Невідомий символ "${char}" в рядку ${line}`);
   }
 }
 
+/**
+ * @param {number} state
+ * @param {string} lexeme
+ * @returns {string}
+ */
 function getToken(state, lexeme) {
   if (tokens[lexeme]) {
     return tokens[lexeme];
@@ -185,6 +196,7 @@ function indexIdConst(state, lexeme) {
 
     return tableIdents.push(lexeme) - 1;
   }
+
   if (states.const.includes(state)) {
     const index = tableConst.indexOf(lexeme);
 
@@ -204,13 +216,17 @@ function indexIdConst(state, lexeme) {
  * @returns {number}
  */
 function nextState(state, charClass) {
-  const stfRow = stf.find(row => row[0] === state && row[1] === charClass);
+  for (let i = 0; i < stf.length; i++) {
+    if (stf[i][0] === state && stf[i][1] === charClass) {
+      return stf[i][2];
+    }
+  }
 
-  if (stfRow === undefined && charClass !== 'other') {
+  if (charClass !== 'other') {
     return nextState(state, 'other');
   }
 
-  return stfRow[2];
+  throw new Error(`Невідомий символ ${char} на лінії ${line}`);
 }
 
 /**
