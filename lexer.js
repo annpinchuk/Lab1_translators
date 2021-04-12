@@ -90,6 +90,13 @@ const states = {
   final: [2, 6, 9, 11, 12, 13, 14, 16, 18, 19, 101, 102, 103, 104],
 };
 
+const errorMessages = {
+  101: () => `Невідомий символ "${char}" в рядку ${line}`,
+  102: () => `Очікувався "=" після "!" в рядку ${line}`,
+  103: () => `Очікувався "&" після "&" в рядку ${line}`,
+  104: () => `Очікувався "|" після "|" в рядку ${line}`,
+};
+
 const initState = 0; // q0 - стартовий стан
 
 let state = initState,
@@ -103,7 +110,7 @@ let tableConst = [];
 let tableSymbols = [];
 
 function lex() {
-  const exampleCode = fs.readFileSync('./baseExample.ap').toString();
+  const exampleCode = fs.readFileSync('./example3.ap').toString();
 
   while (charIndex < exampleCode.length) {
     char = exampleCode.charAt(charIndex);
@@ -122,7 +129,11 @@ function lex() {
     charIndex++;
   }
 
-  return tableSymbols;
+  return {
+    tableOfSymb: tableSymbols,
+    tableConst: tableConst,
+    tableIdents: tableIdents,
+  };
 }
 
 function processing() {
@@ -140,7 +151,7 @@ function processing() {
     let index = '';
 
     if (token !== 'keyword') {
-      index = indexIdConst(state, lexeme);
+      index = indexIdConst(state, lexeme, token);
     }
 
     tableSymbols.push([line, lexeme, token, index]);
@@ -163,7 +174,7 @@ function processing() {
   }
 
   if (states.error.includes(state)) {
-    console.error(`(${state}) Невідомий символ "${char}" в рядку ${line}`);
+    throw new Error(errorMessages[state]());
   }
 }
 
@@ -186,25 +197,56 @@ function getToken(state, lexeme) {
  * @param {string} lexeme
  * @returns {number}
  */
-function indexIdConst(state, lexeme) {
-  if (states.ident.includes(state)) {
-    const index = tableIdents.indexOf(lexeme);
+function indexIdConst(state, lexeme, token) {
+  // if (states.ident.includes(state)) {
+  //   const index = tableIdents.indexOf(lexeme);
+  //
+  //   if (index !== -1) {
+  //     return index;
+  //   }
+  //
+  //   return tableIdents.push(lexeme) - 1;
+  // }
+  //
+  // if (states.const.includes(state)) {
+  //   const index = tableConst.indexOf(lexeme);
+  //
+  //   if (index !== -1) {
+  //     return index;
+  //   }
+  //
+  //   return tableConst.push(lexeme) - 1;
+  // }
+  //
+  // throw new Error('Неправильний стан ' + state + ' та лексема ' + lexeme);
+
+  if (states.const.includes(state) || ['true', 'false'].includes(lexeme)) {
+    const index = tableConst.findIndex(row => row.lexeme === lexeme);
 
     if (index !== -1) {
       return index;
     }
 
-    return tableIdents.push(lexeme) - 1;
-  }
+    let type = token;
+    let value = lexeme;
 
-  if (states.const.includes(state)) {
-    const index = tableConst.indexOf(lexeme);
+    if (token === 'integer') {
+      value = parseInt(lexeme);
+    } else if (token === 'boolval') {
+      value = lexeme === 'true';
+    } else if (token === 'real') {
+      value = parseFloat(lexeme);
+    }
+
+    return tableConst.push({ lexeme, type, value }) - 1;
+  } else if (states.ident.includes(state)) {
+    const index = tableIdents.findIndex(row => row.lexeme === lexeme);
 
     if (index !== -1) {
       return index;
     }
 
-    return tableConst.push(lexeme) - 1;
+    return tableIdents.push({ lexeme, type: null, value: null }) - 1;
   }
 
   throw new Error('Неправильний стан ' + state + ' та лексема ' + lexeme);
@@ -226,7 +268,7 @@ function nextState(state, charClass) {
     return nextState(state, 'other');
   }
 
-  throw new Error(`Невідомий символ ${char} на лінії ${line}`);
+  throw new Error(`Невідомий символ ${char} в рядку ${line}`);
 }
 
 /**
@@ -261,12 +303,12 @@ function getCharClass(char) {
   throw new Error('Невідомий символ "' + char + '" в рядку ' + line);
 }
 
-try {
-  lex();
-} finally {
-  console.log('Таблиця констант', tableConst);
-  console.log('Таблиця ідентифікаторів', tableIdents);
-  console.log('Таблиця символів', tableSymbols);
-}
+// try {
+//   lex();
+// } finally {
+//   console.log('Таблиця констант', tableConst);
+//   console.log('Таблиця ідентифікаторів', tableIdents);
+//   console.log('Таблиця символів', tableSymbols);
+// }
 
 module.exports = { lex };

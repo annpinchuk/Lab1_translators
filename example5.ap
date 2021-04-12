@@ -1,0 +1,6 @@
+program Main {
+    real a = 4.1
+    for integer i = 0 bp 1 to 10 do
+        write(a)
+    rof
+}

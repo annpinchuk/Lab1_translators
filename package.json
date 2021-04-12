@@ -7,7 +7,9 @@
   "scripts": {
     "test": "jest"
   },
-  "author": "Alex Solomaha",
+  "engines": {
+    "node": ">=14"
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^26.0.15",

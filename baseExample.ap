@@ -2,19 +2,15 @@ program Main {
     integer a = 1 + 3
     real b = 4.5 - a * 2
     boolean c = true
-    boolean d = a != b
-    real e
     read(e)
     for integer i = a / 2 by 1 to 100 do
         if e >= 3 && e <= 5 {
             write(i)
         }
-        if e < 3 { write(i > 3) }
+        if e < 3 { write(i) }
     rof
-    if c { write(b) }
+    if c == true { write(b) }
     if c == false {
         write(c)
     }
 }
-
-1,12
