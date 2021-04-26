@@ -1,28 +1,49 @@
 const { parse } = require('./parser');
 
 function interpreter() {
-  const { postfixCode, tableOfSymb, tableConst, tableIdents } = parse();
+  const { postfixCode, tableConst, tableIdents } = parse();
   let stack = [];
   for (let i = 0; i < postfixCode.length; i++) {
     const { lexeme, token } = postfixCode[i];
-    if (['integer', 'real', 'ident'].includes(token)) {
+    if (['integer', 'real', 'ident', 'keyword'].includes(token)) {
       stack.push({ lexeme, token });
     } else {
       doIt(lexeme, token);
     }
   }
 
-  //TODO
   function doIt(lexeme, token) {
     if (lexeme === '=' && token === 'assign_op') {
       // зняти з вершини стека запис (правий операнд = число)
       const left = stack.pop();
       //зняти з вершини стека iдентифiкатор (лiвий операнд)
       const right = stack.pop();
+      const type = stack.pop();
 
       for (let i = 0; i < tableIdents.length; i++) {
         if (tableIdents[i].lexeme === right.lexeme) {
-          const constInfo = findConst(left.lexeme);
+          const constInfo = findConstant(left.lexeme);
+
+          const isAssign = tableIdents[i].type === null && tableIdents[i].value === null;
+
+          if (isAssign) {
+            if (!type) {
+              throw new Error(`Variable ${right.lexeme} assign before declaration`);
+            }
+
+            if (type.lexeme !== constInfo.type) {
+              throw new Error(
+                `Incompatible type to assign ${constInfo.type} to ${type.lexeme} ${right.lexeme}`,
+              );
+            }
+          } else {
+            if (tableIdents[i].type !== constInfo.type) {
+              throw new Error(
+                `Incompatible type to assign ${constInfo.type} to ${tableIdents[i].type} ${tableIdents[i].lexeme}`,
+              );
+            }
+          }
+
           tableIdents[i].type = constInfo.type;
           tableIdents[i].value = constInfo.value;
         }
@@ -34,13 +55,24 @@ function interpreter() {
       const left = stack.pop();
 
       processing_add_mult_op(left, lexeme, right);
-      //TODO
+    } else if (lexeme === '@' && token === 'unary_minus') {
+      const entry = stack.pop();
+
+      const value = -entry.lexeme;
+      const lexeme = value.toString();
+      const token = entry.token;
+
+      stack.push({ lexeme, token });
+
+      if (tableConst.findIndex(row => row.lexeme === lexeme) === -1) {
+        tableConst.push({ type: token, value, lexeme });
+      }
     }
   }
 
   function processing_add_mult_op(left, lexeme, right) {
     if (left.token === 'ident') {
-      const identInfo = findId(left.lexeme);
+      const identInfo = findIdentifier(left.lexeme);
 
       if (identInfo.type === null) {
         throw new Error(
@@ -58,11 +90,11 @@ function interpreter() {
       left.value = identInfo.value;
       left.token = identInfo.type;
     } else {
-      left.value = findConst(left.lexeme).value;
+      left.value = findConstant(left.lexeme).value;
     }
 
     if (right.token === 'ident') {
-      const identInfo = findId(right.lexeme);
+      const identInfo = findIdentifier(right.lexeme);
 
       if (identInfo.type === null) {
         throw new Error(
@@ -79,7 +111,7 @@ function interpreter() {
       right.value = identInfo.value;
       right.token = identInfo.type;
     } else {
-      right.value = findConst(right.lexeme).value;
+      right.value = findConstant(right.lexeme).value;
     }
     getValue(left, lexeme, right);
   }
@@ -105,16 +137,11 @@ function interpreter() {
     } else if (lexeme === '/') {
       if (right.value === 0) {
         throw new Error(
-          `Невідповідність типів: ` +
-            JSON.stringify(left) +
-            ` ` +
-            lexeme +
-            ` ` +
-            JSON.stringify(right),
+          `Ділення на нуль ` + JSON.stringify(left) + ` ` + lexeme + ` ` + JSON.stringify(right),
         );
       }
 
-      result = left.value / right.value;
+      result = Math.round(left.value / right.value);
     } else if (lexeme === '^') {
       result = Math.pow(left.value, right.value);
     }
@@ -126,27 +153,29 @@ function interpreter() {
     }
   }
 
-  function findConst(lexeme) {
-    const row = tableConst.find(row => row.lexeme === lexeme);
+  function findConstant(lexeme) {
+    const info = tableConst.find(row => row.lexeme === lexeme);
 
-    if (row === undefined) {
+    if (info === undefined) {
       throw new Error(`Константу за лексемою ${lexeme} не знайдено`);
     }
 
-    return row;
+    return info;
   }
 
-  function findId(lexeme) {
-    const row = tableIdents.find(row => row.lexeme === lexeme);
+  function findIdentifier(lexeme) {
+    const info = tableIdents.find(row => row.lexeme === lexeme);
 
-    if (row === undefined) {
+    if (info === undefined) {
       throw new Error(`Ідентифікатор за лексемою ${lexeme} не знайдено`);
     }
 
-    return row;
+    return info;
   }
 
+  console.log('Таблиця ідентифікаторів');
   console.table(tableIdents);
+  console.log('Таблиця констант');
   console.table(tableConst);
 }
 

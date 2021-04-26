@@ -110,7 +110,7 @@ let tableConst = [];
 let tableSymbols = [];
 
 function lex() {
-  const exampleCode = fs.readFileSync('./example3.ap').toString();
+  const exampleCode = fs.readFileSync('./baseExample.ap').toString();
 
   while (charIndex < exampleCode.length) {
     char = exampleCode.charAt(charIndex);

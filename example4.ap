@@ -1,5 +1,5 @@
 program Main {
-    real e = 2
+    real e = 2.2
     for integer i = 0 by 1 50 do
         if e < 3 { write(i) }
     rof

@@ -1,16 +1,3 @@
 program Main {
-    integer a = 1 + 3
-    real b = 4.5 - a * 2
-    boolean c = true
-    read(e)
-    for integer i = a / 2 by 1 to 100 do
-        if e >= 3 && e <= 5 {
-            write(i)
-        }
-        if e < 3 { write(i) }
-    rof
-    if c == true { write(b) }
-    if c == false {
-        write(c)
-    }
+    real b = 3 / 0
 }

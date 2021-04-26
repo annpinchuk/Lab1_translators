@@ -7,7 +7,9 @@ function parse() {
   let postfixCode = [];
 
   console.log('Таблиця символів', tableOfSymb);
+  console.log('Таблиця констант');
   console.table(tableConst);
+  console.log('Таблиця ідентифікаторів');
   console.table(tableIdents);
 
   /**
@@ -100,6 +102,8 @@ function parse() {
         `В рядку ${line} неочікуваний елемент ${token} ${lexeme}; очікувався keyword ${dataTypes}`,
       );
     }
+
+    postfixCode.push({ lexeme, token });
 
     parseAssign();
 
