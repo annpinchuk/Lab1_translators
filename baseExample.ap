@@ -1,3 +1,7 @@
 program Main {
-    real b = 3 / 0
+    integer a = 4^2
+    read(a)
+    if a >= 4 && a < 16{
+        write(a)
+    }
 }

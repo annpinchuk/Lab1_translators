@@ -18,5 +18,8 @@
     "eslint-plugin-node": "^11.1.0",
     "jest": "^26.6.3",
     "prettier": "^2.2.1"
+  },
+  "dependencies": {
+    "prompt-sync": "^4.2.0"
   }
 }

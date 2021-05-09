@@ -1,9 +1,7 @@
 program Main {
-    real e = 2
-    for integer i = 0 / 2 by 1 to 50 do
-        if e >= 3 && e <= 7 {
-            write(i)
-        }
-        if e < 3 { write(i) }
-    rof
+    integer a = 4^2
+    read(a)
+    if a >= 4 && a < 16{
+        write(a)
+    }
 }

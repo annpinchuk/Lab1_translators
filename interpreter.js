@@ -1,14 +1,44 @@
+const prompt = require('prompt-sync')();
 const { parse } = require('./parser');
 
 function interpreter() {
-  const { postfixCode, tableConst, tableIdents } = parse();
+  const { postfixCode, tableConst, tableIdents, tableOfLabels } = parse();
   let stack = [];
-  for (let i = 0; i < postfixCode.length; i++) {
+  for (let i = 0; i < postfixCode.length; ) {
     const { lexeme, token } = postfixCode[i];
-    if (['integer', 'real', 'ident', 'keyword'].includes(token)) {
+    if (['integer', 'real', 'boolean', 'ident', 'keyword', 'label'].includes(token)) {
       stack.push({ lexeme, token });
+      i++;
+    } else if (['jump', 'jf'].includes(token)) {
+      i = doJump(token, i);
     } else {
       doIt(lexeme, token);
+      i++;
+    }
+  }
+
+  function doJump(token, i) {
+    switch (token) {
+      case 'jump': {
+        const lbl = stack.pop();
+        if (tableOfLabels[lbl.lexeme] === undefined) {
+          throw new Error(`Мітку ${lbl.lexeme} не знайдено`);
+        }
+
+        return tableOfLabels[lbl.lexeme];
+      }
+      case 'jf': {
+        const lbl = stack.pop();
+        const boolExpr = stack.pop();
+        if (boolExpr.lexeme === 'false') {
+          if (tableOfLabels[lbl.lexeme] === undefined) {
+            throw new Error(`Мітку ${lbl.lexeme} не знайдено`);
+          }
+
+          return tableOfLabels[lbl.lexeme];
+        }
+        return i + 1;
+      }
     }
   }
 
@@ -31,24 +61,24 @@ function interpreter() {
               throw new Error(`Variable ${right.lexeme} assign before declaration`);
             }
 
-            if (type.lexeme !== constInfo.type) {
+            if (type.lexeme !== left.token) {
               throw new Error(
-                `Incompatible type to assign ${constInfo.type} to ${type.lexeme} ${right.lexeme}`,
+                `Incompatible type to assign ${left.token} to ${type.lexeme} ${right.lexeme}`,
               );
             }
           } else {
-            if (tableIdents[i].type !== constInfo.type) {
+            if (tableIdents[i].type !== null && tableIdents[i].type !== left.token) {
               throw new Error(
-                `Incompatible type to assign ${constInfo.type} to ${tableIdents[i].type} ${tableIdents[i].lexeme}`,
+                `Incompatible type to assign ${left.token} to ${tableIdents[i].type} ${tableIdents[i].lexeme}`,
               );
             }
           }
 
-          tableIdents[i].type = constInfo.type;
+          tableIdents[i].type = left.token;
           tableIdents[i].value = constInfo.value;
         }
       }
-    } else if (['add_op', 'mult_op', 'pow_op'].includes(token)) {
+    } else if (['add_op', 'mult_op', 'rel_op', 'bool_op', 'pow_op'].includes(token)) {
       // зняти з вершини стека запис (правий операнд)
       const right = stack.pop();
       // зняти з вершини стека запис (лiвий операнд)
@@ -67,6 +97,29 @@ function interpreter() {
       if (tableConst.findIndex(row => row.lexeme === lexeme) === -1) {
         tableConst.push({ type: token, value, lexeme });
       }
+    } else if (token === 'write') {
+      const { lexeme } = stack.pop();
+      const idnt = findIdentifier(lexeme);
+
+      console.log(`\t ${idnt.lexeme} = ${idnt.value}`);
+    } else if (token === 'read') {
+      const { lexeme } = stack.pop();
+      const idnt = findIdentifier(lexeme);
+
+      let input = prompt(`Введіть будь ласка ${idnt.lexeme} з типом ${idnt.type}: `);
+
+      if (idnt.type === 'integer') {
+        input = parseInt(input);
+      } else if (idnt.type === 'real') {
+        input = parseFloat(input);
+      } else if (idnt.type === 'boolean') {
+        input = input === 'true' || input === '1';
+      }
+
+      if (Number.isNaN(input)) {
+        throw new Error(`Неправильно введене значення`);
+      }
+      idnt.value = input;
     }
   }
 
@@ -144,11 +197,29 @@ function interpreter() {
       result = Math.round(left.value / right.value);
     } else if (lexeme === '^') {
       result = Math.pow(left.value, right.value);
+    } else if (lexeme === '>') {
+      result = left.value > right.value;
+    } else if (lexeme === '<') {
+      result = left.value < right.value;
+    } else if (lexeme === '>=') {
+      result = left.value >= right.value;
+    } else if (lexeme === '<=') {
+      result = left.value <= right.value;
+    } else if (lexeme === '==') {
+      result = left.value === right.value;
+    } else if (lexeme === '!=') {
+      result = left.value !== right.value;
+    } else if (lexeme === '&&') {
+      result = left.value && right.value;
+    } else if (lexeme === '||') {
+      result = left.value || right.value;
+    } else {
+      throw new Error(`Невідомий оператор: ${lexeme}`);
     }
 
     stack.push({ lexeme: result.toString(), token: left.token });
 
-    if (tableConst.findIndex(row => row.lexeme === lexeme) === -1) {
+    if (tableConst.findIndex(row => row.lexeme === result.toString()) === -1) {
       tableConst.push({ type: left.token, value: result, lexeme: result.toString() });
     }
   }

@@ -5,6 +5,7 @@ function parse() {
   let numRow = 0;
   let identLevel = 0;
   let postfixCode = [];
+  let tableOfLabels = {};
 
   console.log('Таблиця символів', tableOfSymb);
   console.log('Таблиця констант');
@@ -88,6 +89,24 @@ function parse() {
     }
   }
 
+  function parseAssign() {
+    log('parseAssign()');
+
+    const { lexeme, token } = getSymb();
+
+    postfixCode.push({ lexeme, token });
+    numRow++;
+
+    if (parseToken('=', 'assign_op')) {
+      parseExpression();
+      postfixCode.push({ lexeme: '=', token: 'assign_op' });
+    }
+
+    identLevel--;
+
+    return { token, lexeme };
+  }
+
   function parseDeclaration() {
     log('parseDeclaration()');
 
@@ -105,25 +124,28 @@ function parse() {
 
     postfixCode.push({ lexeme, token });
 
-    parseAssign();
+    const parseA = parseAssign();
 
     identLevel--;
+
+    return parseA;
   }
 
-  function parseAssign() {
-    log('parseAssign()');
+  function createLabel() {
+    let i = 1;
+    let lexeme = '#m' + i;
 
-    const { lexeme, token } = getSymb();
-
-    postfixCode.push({ lexeme, token });
-    numRow++;
-
-    if (parseToken('=', 'assign_op')) {
-      parseExpression();
-      postfixCode.push({ lexeme: '=', token: 'assign_op' });
+    while (tableOfLabels[lexeme] !== undefined) {
+      i++;
+      lexeme = '#m' + i;
     }
+    const label = { lexeme, token: 'label' };
+    tableOfLabels[lexeme] = null;
+    return label;
+  }
 
-    identLevel--;
+  function setValLabel(lbl) {
+    tableOfLabels[lbl.lexeme] = postfixCode.length;
   }
 
   function parseIf() {
@@ -136,8 +158,15 @@ function parse() {
 
       parseBoolExpr();
       parseToken('{', 'curve_brackets_op');
+
+      let m1 = createLabel();
+      postfixCode.push(m1);
+      postfixCode.push({ lexeme: 'JF', token: 'jf' });
+
       parseStatementList();
       parseToken('}', 'curve_brackets_op');
+      setValLabel(m1);
+      postfixCode.push(m1);
     }
 
     identLevel--;
@@ -147,14 +176,58 @@ function parse() {
     log('parseFor()');
 
     parseToken('for', 'keyword');
-    parseDeclaration();
+    const prm = parseDeclaration();
     parseToken('by', 'keyword');
+
+    tableIdents.push({ lexeme: 'step', type: null, value: 0 });
+    tableConst.push({ lexeme: '0', type: 'integer', value: 0 });
+
+    const step = createLabel();
+    const skipStep = createLabel();
+
+    postfixCode.push(skipStep);
+    postfixCode.push({ lexeme: 'JUMP', token: 'jump' });
+
+    postfixCode.push(step);
+    setValLabel(step);
+
+    postfixCode.push({ lexeme: 'step', token: 'ident' });
     parseExpression();
+    postfixCode.push({ lexeme: '=', token: 'assign_op' });
+
     parseToken('to', 'keyword');
+
+    // prm step prm + =
+    // prm = step + prm
+    postfixCode.push(prm);
+    postfixCode.push({ lexeme: 'step', token: 'ident' });
+    postfixCode.push(prm);
+    postfixCode.push({ lexeme: '+', token: 'add_op' });
+    postfixCode.push({ lexeme: '=', token: 'assign_op' });
+
+    postfixCode.push(skipStep);
+    setValLabel(skipStep);
+
+    // prm <= arithm
+    // prm arithm <=
+
+    postfixCode.push(prm);
     parseExpression();
+    postfixCode.push({ lexeme: '<=', token: 'rel_op' });
+
+    const end = createLabel();
+    postfixCode.push(end);
+    postfixCode.push({ lexeme: 'JF', token: 'jf' });
+
     parseToken('do', 'keyword');
     parseStatementList();
     parseToken('rof', 'keyword');
+
+    postfixCode.push(step);
+    postfixCode.push({ lexeme: 'JUMP', token: 'jump' });
+
+    postfixCode.push(end);
+    setValLabel(end);
 
     identLevel--;
   }
@@ -162,7 +235,9 @@ function parse() {
   function parseBoolExpr() {
     log('parseBoolExpr()');
 
-    if (getSymb().token === 'boolval') {
+    if (getSymb().token === 'boolean') {
+      let { lexeme, token } = getSymb();
+      postfixCode.push({ lexeme, token });
       numRow++;
       return true;
     }
@@ -179,9 +254,13 @@ function parse() {
 
     parseExpression();
 
+    postfixCode.push({ lexeme, token });
+
     if (getSymb().token === 'bool_op') {
+      let { lexeme, token } = getSymb();
       numRow++;
       parseBoolExpr();
+      postfixCode.push({ lexeme, token });
     }
 
     identLevel--;
@@ -194,6 +273,7 @@ function parse() {
     parseToken('(', 'brackets_op');
 
     const { line, lexeme, token } = getSymb();
+    postfixCode.push({ lexeme, token });
 
     if (token === 'ident') {
       numRow++;
@@ -204,6 +284,7 @@ function parse() {
     }
 
     parseToken(')', 'brackets_op');
+    postfixCode.push({ lexeme: 'READ', token: 'read' });
 
     identLevel--;
   }
@@ -215,6 +296,7 @@ function parse() {
     parseToken('(', 'brackets_op');
 
     const { line, lexeme, token } = getSymb();
+    postfixCode.push({ lexeme, token });
 
     if (token === 'ident') {
       numRow++;
@@ -225,14 +307,17 @@ function parse() {
     }
 
     parseToken(')', 'brackets_op');
+    postfixCode.push({ lexeme: 'WRITE', token: 'write' });
 
     identLevel--;
   }
 
   function parseExpression() {
     log('parseExpression()');
+    let { token, lexeme } = getSymb();
 
-    if (getSymb().token === 'boolval') {
+    if (getSymb().token === 'boolean') {
+      postfixCode.push({ lexeme, token });
       numRow++;
       identLevel--;
       return;
@@ -324,10 +409,13 @@ function parse() {
 
   parseProgram();
 
+  console.log('Таблиця міток');
+  console.table(tableOfLabels);
+
   console.table(postfixCode);
   console.log(postfixCode.map(row => row.lexeme).join(' '));
 
-  return { tableOfSymb, tableConst, tableIdents, postfixCode };
+  return { tableOfSymb, tableConst, tableIdents, postfixCode, tableOfLabels };
 }
 
 // if (parse()) {
