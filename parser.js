@@ -3,7 +3,6 @@ const { lex } = require('./lexer');
 function parse() {
   const { tableOfSymb, tableConst, tableIdents } = lex();
   let numRow = 0;
-  let identLevel = 0;
   let postfixCode = [];
   let tableOfLabels = {};
 
@@ -13,22 +12,12 @@ function parse() {
   console.log('Таблиця ідентифікаторів');
   console.table(tableIdents);
 
-  /**
-   * TODO: remove
-   */
-  function log() {
-    console.log.apply(console.log, ['   '.repeat(identLevel), ...arguments]);
-    identLevel++;
-  }
-
   function parseToken(lex, tok) {
     const { line, lexeme, token } = getSymb();
 
     numRow++;
 
     if (lex === lexeme && tok === token) {
-      log(`parseToken(): В рядку ${line} токен: ${lexeme} ${token}`);
-      identLevel--;
       return true;
     }
 
@@ -90,8 +79,6 @@ function parse() {
   }
 
   function parseAssign() {
-    log('parseAssign()');
-
     const { lexeme, token } = getSymb();
 
     postfixCode.push({ lexeme, token });
@@ -102,14 +89,10 @@ function parse() {
       postfixCode.push({ lexeme: '=', token: 'assign_op' });
     }
 
-    identLevel--;
-
     return { token, lexeme };
   }
 
   function parseDeclaration() {
-    log('parseDeclaration()');
-
     const { line, lexeme, token } = getSymb();
 
     const dataTypes = ['integer', 'real', 'boolean'];
@@ -125,8 +108,6 @@ function parse() {
     postfixCode.push({ lexeme, token });
 
     const parseA = parseAssign();
-
-    identLevel--;
 
     return parseA;
   }
@@ -149,8 +130,6 @@ function parse() {
   }
 
   function parseIf() {
-    log('parseIf()');
-
     const { lexeme, token } = getSymb();
 
     if (lexeme === 'if' && token === 'keyword') {
@@ -168,13 +147,9 @@ function parse() {
       setValLabel(m1);
       postfixCode.push(m1);
     }
-
-    identLevel--;
   }
 
   function parseFor() {
-    log('parseFor()');
-
     parseToken('for', 'keyword');
     const prm = parseDeclaration();
     parseToken('by', 'keyword');
@@ -228,13 +203,9 @@ function parse() {
 
     postfixCode.push(end);
     setValLabel(end);
-
-    identLevel--;
   }
 
   function parseBoolExpr() {
-    log('parseBoolExpr()');
-
     if (getSymb().token === 'boolean') {
       let { lexeme, token } = getSymb();
       postfixCode.push({ lexeme, token });
@@ -262,13 +233,9 @@ function parse() {
       parseBoolExpr();
       postfixCode.push({ lexeme, token });
     }
-
-    identLevel--;
   }
 
   function parseInp() {
-    log('parseInp()');
-
     parseToken('read', 'keyword');
     parseToken('(', 'brackets_op');
 
@@ -285,13 +252,9 @@ function parse() {
 
     parseToken(')', 'brackets_op');
     postfixCode.push({ lexeme: 'READ', token: 'read' });
-
-    identLevel--;
   }
 
   function parseOut() {
-    log('parseOut()');
-
     parseToken('write', 'keyword');
     parseToken('(', 'brackets_op');
 
@@ -308,18 +271,14 @@ function parse() {
 
     parseToken(')', 'brackets_op');
     postfixCode.push({ lexeme: 'WRITE', token: 'write' });
-
-    identLevel--;
   }
 
   function parseExpression() {
-    log('parseExpression()');
     let { token, lexeme } = getSymb();
 
     if (getSymb().token === 'boolean') {
       postfixCode.push({ lexeme, token });
       numRow++;
-      identLevel--;
       return;
     }
 
@@ -347,13 +306,9 @@ function parse() {
 
       postfixCode.push({ lexeme, token });
     }
-
-    identLevel--;
   }
 
   function parseTerm() {
-    log('parseTerm()');
-
     parseFactor();
 
     while (numRow < tableOfSymb.length) {
@@ -367,19 +322,14 @@ function parse() {
 
       postfixCode.push({ lexeme, token });
     }
-
-    identLevel--;
   }
 
   function parseFactor() {
-    log('parseFactor()');
-
     const { line, lexeme, token } = getSymb();
 
     if (['integer', 'real', 'ident'].includes(token)) {
       postfixCode.push({ lexeme, token });
       numRow++;
-      // log(`В рядку ${line}: ${token} ${lexeme}`);
     } else if (lexeme === '(') {
       numRow++;
       parseExpression();
@@ -387,8 +337,6 @@ function parse() {
     } else {
       throw new Error(`В рядку ${line} неочікуваний елемент для Factor: ${token} ${lexeme}`);
     }
-
-    identLevel--;
   }
 
   function parseProgram() {

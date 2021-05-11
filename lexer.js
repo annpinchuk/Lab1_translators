@@ -198,28 +198,6 @@ function getToken(state, lexeme) {
  * @returns {number}
  */
 function indexIdConst(state, lexeme, token) {
-  // if (states.ident.includes(state)) {
-  //   const index = tableIdents.indexOf(lexeme);
-  //
-  //   if (index !== -1) {
-  //     return index;
-  //   }
-  //
-  //   return tableIdents.push(lexeme) - 1;
-  // }
-  //
-  // if (states.const.includes(state)) {
-  //   const index = tableConst.indexOf(lexeme);
-  //
-  //   if (index !== -1) {
-  //     return index;
-  //   }
-  //
-  //   return tableConst.push(lexeme) - 1;
-  // }
-  //
-  // throw new Error('Неправильний стан ' + state + ' та лексема ' + lexeme);
-
   if (states.const.includes(state) || ['true', 'false'].includes(lexeme)) {
     const index = tableConst.findIndex(row => row.lexeme === lexeme);
 

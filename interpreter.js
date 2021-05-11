@@ -45,36 +45,36 @@ function interpreter() {
   function doIt(lexeme, token) {
     if (lexeme === '=' && token === 'assign_op') {
       // зняти з вершини стека запис (правий операнд = число)
-      const left = stack.pop();
-      //зняти з вершини стека iдентифiкатор (лiвий операнд)
       const right = stack.pop();
+      //зняти з вершини стека iдентифiкатор (лiвий операнд)
+      const left = stack.pop();
       const type = stack.pop();
 
       for (let i = 0; i < tableIdents.length; i++) {
-        if (tableIdents[i].lexeme === right.lexeme) {
-          const constInfo = findConstant(left.lexeme);
+        if (tableIdents[i].lexeme === left.lexeme) {
+          const constInfo = findConstant(right.lexeme);
 
           const isAssign = tableIdents[i].type === null && tableIdents[i].value === null;
 
           if (isAssign) {
             if (!type) {
-              throw new Error(`Variable ${right.lexeme} assign before declaration`);
+              throw new Error(`Variable ${left.lexeme} assign before declaration`);
             }
 
-            if (type.lexeme !== left.token) {
+            if (type.lexeme !== right.token) {
               throw new Error(
-                `Incompatible type to assign ${left.token} to ${type.lexeme} ${right.lexeme}`,
+                `Incompatible type to assign ${right.token} to ${type.lexeme} ${left.lexeme}`,
               );
             }
           } else {
-            if (tableIdents[i].type !== null && tableIdents[i].type !== left.token) {
+            if (tableIdents[i].type !== null && tableIdents[i].type !== right.token) {
               throw new Error(
-                `Incompatible type to assign ${left.token} to ${tableIdents[i].type} ${tableIdents[i].lexeme}`,
+                `Incompatible type to assign ${right.token} to ${tableIdents[i].type} ${tableIdents[i].lexeme}`,
               );
             }
           }
 
-          tableIdents[i].type = left.token;
+          tableIdents[i].type = right.token;
           tableIdents[i].value = constInfo.value;
         }
       }

@@ -1,6 +1,6 @@
 program Main {
     integer a = 4^2
-    read(a)
+    read(b)
     if a >= 4 && a < 16{
         write(a)
     }
