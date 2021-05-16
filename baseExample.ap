@@ -1,7 +1,18 @@
 program Main {
-    integer a = 4^2
-    read(b)
-    if a >= 4 && a < 16{
-        write(a)
+    integer a = 1 + 3
+    real d = 3.6
+    real b = 4.5 - d * 2.0
+    boolean c = true
+    integer e = 1
+    read(e)
+    for integer i = a / 2 by 1 to 10 do
+        if e >= 3 && e <= 5 {
+            write(i)
+        }
+        if e < 3 { write(i) }
+    rof
+    if c == true { write(b) }
+    if c == false {
+        write(c)
     }
 }
