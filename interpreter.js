@@ -87,10 +87,19 @@ function interpreter() {
       processing_add_mult_op(left, lexeme, right);
     } else if (lexeme === '@' && token === 'unary_minus') {
       const entry = stack.pop();
+      let value, lexeme, token;
 
-      const value = -entry.lexeme;
-      const lexeme = value.toString();
-      const token = entry.token;
+      if (entry.token === 'ident') {
+        const identInfo = findIdentifier(entry.lexeme);
+
+        value = -identInfo.value;
+        token = identInfo.type;
+      } else {
+        value = -entry.lexeme;
+        token = entry.token;
+      }
+
+      lexeme = value.toString();
 
       stack.push({ lexeme, token });
 
@@ -101,10 +110,18 @@ function interpreter() {
       const { lexeme } = stack.pop();
       const idnt = findIdentifier(lexeme);
 
+      if (idnt.value === null) {
+        throw new Error(`Невідома змінна ${idnt.lexeme}`);
+      }
+
       console.log(`\t ${idnt.lexeme} = ${idnt.value}`);
     } else if (token === 'read') {
       const { lexeme } = stack.pop();
       const idnt = findIdentifier(lexeme);
+
+      if (idnt.value === null) {
+        throw new Error(`Невідома змінна ${idnt.lexeme}`);
+      }
 
       let input = prompt(`Введіть будь ласка ${idnt.lexeme} з типом ${idnt.type}: `);
 
